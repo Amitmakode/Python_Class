@@ -1,0 +1,926 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Introduction for Data Science</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+        }
+
+        .presentation-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .slide {
+            width: 100%;
+            height: 100%;
+            display: none;
+            padding: 60px;
+            background: white;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            position: absolute;
+            top: 0;
+            left: 0;
+            animation: slideIn 0.5s ease-in-out;
+        }
+
+        .slide.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .slide h1 {
+            font-size: 3.5em;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            text-align: center;
+            background: linear-gradient(45deg, #3498db, #8e44ad);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .slide h2 {
+            font-size: 2.5em;
+            color: #34495e;
+            margin-bottom: 25px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .slide h3 {
+            font-size: 1.8em;
+            color: #2980b9;
+            margin: 20px 0 15px 0;
+        }
+
+        .slide p, .slide li {
+            font-size: 1.3em;
+            line-height: 1.6;
+            color: #555;
+            margin-bottom: 15px;
+        }
+
+        .slide ul {
+            margin-left: 30px;
+            margin-bottom: 20px;
+        }
+
+        .slide li {
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .slide li::before {
+            content: "▶";
+            color: #3498db;
+            font-weight: bold;
+            position: absolute;
+            left: -20px;
+        }
+
+        .python-logo {
+            width: 150px;
+            height: 150px;
+            background: linear-gradient(45deg, #3776ab, #ffd343);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4em;
+            color: white;
+            margin: 20px auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            margin: 30px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 25px;
+            border-radius: 15px;
+            color: white;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            transform: translateY(0);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card h3 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            color: white;
+        }
+
+        .stat-card p {
+            font-size: 1.1em;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .comparison-table th {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 15px;
+            font-size: 1.2em;
+        }
+
+        .comparison-table td {
+            padding: 15px;
+            border-bottom: 1px solid #ecf0f1;
+            font-size: 1.1em;
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+            box-shadow: 0 8px 25px rgba(116, 185, 255, 0.3);
+        }
+
+        .highlight-box h3 {
+            color: white;
+            margin-bottom: 15px;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .slide-counter {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 1.1em;
+            z-index: 1000;
+        }
+
+        .timeline {
+            display: flex;
+            justify-content: space-between;
+            margin: 30px 0;
+            position: relative;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #3498db, #8e44ad);
+            z-index: 1;
+        }
+
+        .timeline-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            position: relative;
+            z-index: 2;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .timeline-item h4 {
+            color: #2980b9;
+            font-size: 1.2em;
+            margin-bottom: 5px;
+        }
+
+        .applications-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            margin: 30px 0;
+        }
+
+        .app-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border-top: 5px solid #3498db;
+            transition: transform 0.3s ease;
+        }
+
+        .app-card:hover {
+            transform: translateY(-8px);
+        }
+
+        .app-card h4 {
+            color: #2c3e50;
+            font-size: 1.4em;
+            margin-bottom: 15px;
+        }
+
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            margin: 20px 0;
+            overflow-x: auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-container">
+        <div class="slide-counter">
+            <span id="current-slide">1</span> / <span id="total-slides">15</span>
+        </div>
+
+        <!-- Slide 1: Title Slide -->
+        <div class="slide active">
+            <h1>Python for Data Science</h1>
+            <div class="python-logo">🐍</div>
+            <div style="text-align: center; margin-top: 40px;">
+                <h3 style="color: #7f8c8d; font-size: 2em;">Complete Introduction & Overview</h3>
+                <p style="font-size: 1.5em; color: #95a5a6; margin-top: 30px;">
+                    From Basics to Data Science Applications
+                </p>
+            </div>
+        </div>
+
+        <!-- Slide 2: What is Python? -->
+        <div class="slide">
+            <h2>What is Python? 🐍</h2>
+            <div class="highlight-box">
+                <h3>Python Definition</h3>
+                <p>Python is a high-level, interpreted, general-purpose programming language with dynamic semantics and easy-to-learn syntax that emphasizes readability.</p>
+            </div>
+            <h3>Key Characteristics:</h3>
+            <ul>
+                <li><strong>High-level:</strong> Abstracts complex details, closer to human language</li>
+                <li><strong>Interpreted:</strong> Executes code line by line without compilation</li>
+                <li><strong>Object-Oriented:</strong> Supports classes, objects, and inheritance</li>
+                <li><strong>Dynamic Typing:</strong> Variable types determined at runtime</li>
+                <li><strong>Cross-platform:</strong> Runs on Windows, macOS, Linux, and more</li>
+                <li><strong>Open Source:</strong> Free to use, modify, and distribute</li>
+            </ul>
+        </div>
+
+        <!-- Slide 3: History of Python -->
+        <div class="slide">
+            <h2>History of Python 📜</h2>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <h4>1989</h4>
+                    <p>Guido van Rossum started development</p>
+                </div>
+                <div class="timeline-item">
+                    <h4>1991</h4>
+                    <p>Python 0.9.0 released</p>
+                </div>
+                <div class="timeline-item">
+                    <h4>2000</h4>
+                    <p>Python 2.0 released</p>
+                </div>
+                <div class="timeline-item">
+                    <h4>2008</h4>
+                    <p>Python 3.0 released</p>
+                </div>
+                <div class="timeline-item">
+                    <h4>2025</h4>
+                    <p>Python 3.13+ Current</p>
+                </div>
+            </div>
+            <h3>Important Milestones:</h3>
+            <ul>
+                <li><strong>Named after:</strong> "Monty Python's Flying Circus" (not the snake!)</li>
+                <li><strong>Creator:</strong> Guido van Rossum (Benevolent Dictator for Life)</li>
+                <li><strong>Philosophy:</strong> "There should be one obvious way to do it"</li>
+                <li><strong>Python 2 vs 3:</strong> Python 2 support ended in 2020</li>
+                <li><strong>Current version:</strong> Python 3.13+ with continuous improvements</li>
+            </ul>
+        </div>
+
+        <!-- Slide 4: Why Python is Popular -->
+        <div class="slide">
+            <h2>Why Python is So Popular? 🚀</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>#1</h3>
+                    <p>Most Popular Programming Language (TIOBE Index 2024)</p>
+                </div>
+                <div class="stat-card">
+                    <h3>8.2M+</h3>
+                    <p>Python Developers Worldwide</p>
+                </div>
+                <div class="stat-card">
+                    <h3>400K+</h3>
+                    <p>Packages on PyPI</p>
+                </div>
+                <div class="stat-card">
+                    <h3>85%</h3>
+                    <p>Data Scientists Use Python</p>
+                </div>
+            </div>
+            <h3>Reasons for Popularity:</h3>
+            <ul>
+                <li><strong>Simple Syntax:</strong> Easy to learn and read</li>
+                <li><strong>Versatile:</strong> Used in web development, AI, data science, automation</li>
+                <li><strong>Large Community:</strong> Extensive support and resources</li>
+                <li><strong>Rich Libraries:</strong> Comprehensive standard library + third-party packages</li>
+                <li><strong>Industry Adoption:</strong> Used by Google, Netflix, Instagram, NASA</li>
+            </ul>
+        </div>
+
+        <!-- Slide 5: Python Applications -->
+        <div class="slide">
+            <h2>Python Applications 🔧</h2>
+            <div class="applications-grid">
+                <div class="app-card">
+                    <h4>Web Development</h4>
+                    <p>Django, Flask, FastAPI for building robust web applications</p>
+                </div>
+                <div class="app-card">
+                    <h4>Data Science</h4>
+                    <p>NumPy, Pandas, Matplotlib for data analysis and visualization</p>
+                </div>
+                <div class="app-card">
+                    <h4>AI & Machine Learning</h4>
+                    <p>TensorFlow, PyTorch, Scikit-learn for intelligent systems</p>
+                </div>
+                <div class="app-card">
+                    <h4>Automation</h4>
+                    <p>Scripting, web scraping, task automation</p>
+                </div>
+                <div class="app-card">
+                    <h4>Game Development</h4>
+                    <p>Pygame for 2D games and prototyping</p>
+                </div>
+                <div class="app-card">
+                    <h4>Scientific Computing</h4>
+                    <p>SciPy, SymPy for mathematical computations</p>
+                </div>
+            </div>
+            <div class="highlight-box">
+                <h3>Real-world Examples:</h3>
+                <p><strong>Instagram:</strong> Backend services • <strong>Netflix:</strong> Content recommendation • <strong>Uber:</strong> Data analytics • <strong>NASA:</strong> Space missions • <strong>Google:</strong> Internal tools</p>
+            </div>
+        </div>
+
+        <!-- Slide 6: Why Python for Data Science -->
+        <div class="slide">
+            <h2>Why Python for Data Science? 📊</h2>
+            <div class="highlight-box">
+                <h3>Perfect Storm for Data Science</h3>
+                <p>Python combines simplicity, powerful libraries, and community support making it the ideal choice for data science projects.</p>
+            </div>
+            <h3>Key Advantages:</h3>
+            <ul>
+                <li><strong>Easy Learning Curve:</strong> Focuses on problem-solving, not syntax</li>
+                <li><strong>Comprehensive Libraries:</strong> Everything needed for data pipeline</li>
+                <li><strong>Jupyter Notebooks:</strong> Interactive development environment</li>
+                <li><strong>Visualization Power:</strong> Create stunning charts and graphs</li>
+                <li><strong>Machine Learning Ready:</strong> Seamless ML model development</li>
+                <li><strong>Big Data Support:</strong> Works with Spark, Hadoop ecosystems</li>
+                <li><strong>Community & Resources:</strong> Extensive tutorials, documentation</li>
+            </ul>
+            <div class="code-block">
+# Simple data analysis example
+import pandas as pd
+import matplotlib.pyplot as plt
+
+data = pd.read_csv('sales.csv')
+data.plot(kind='bar', x='product', y='sales')
+plt.show()
+            </div>
+        </div>
+
+        <!-- Slide 7: Essential Python Libraries for Data Science -->
+        <div class="slide">
+            <h2>Essential Data Science Libraries 📚</h2>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Library</th>
+                        <th>Purpose</th>
+                        <th>Key Features</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>NumPy</strong></td>
+                        <td>Numerical Computing</td>
+                        <td>Arrays, mathematical functions, linear algebra</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Pandas</strong></td>
+                        <td>Data Manipulation</td>
+                        <td>DataFrames, data cleaning, CSV/Excel handling</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Matplotlib</strong></td>
+                        <td>Data Visualization</td>
+                        <td>Static plots, charts, customizable graphs</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Seaborn</strong></td>
+                        <td>Statistical Visualization</td>
+                        <td>Beautiful statistical plots, built on matplotlib</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Scikit-learn</strong></td>
+                        <td>Machine Learning</td>
+                        <td>Classification, regression, clustering algorithms</td>
+                    </tr>
+                    <tr>
+                        <td><strong>TensorFlow/PyTorch</strong></td>
+                        <td>Deep Learning</td>
+                        <td>Neural networks, GPU support, production ready</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Slide 8: Python vs Other Languages -->
+        <div class="slide">
+            <h2>Python vs Other Languages ⚖️</h2>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Aspect</th>
+                        <th>Python</th>
+                        <th>R</th>
+                        <th>Java</th>
+                        <th>C++</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Learning Curve</strong></td>
+                        <td>Easy</td>
+                        <td>Moderate</td>
+                        <td>Steep</td>
+                        <td>Very Steep</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Data Science</strong></td>
+                        <td>Excellent</td>
+                        <td>Excellent</td>
+                        <td>Good</td>
+                        <td>Limited</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Performance</strong></td>
+                        <td>Good</td>
+                        <td>Good</td>
+                        <td>Very Good</td>
+                        <td>Excellent</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Community</strong></td>
+                        <td>Huge</td>
+                        <td>Large</td>
+                        <td>Huge</td>
+                        <td>Large</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Versatility</strong></td>
+                        <td>Very High</td>
+                        <td>Limited</td>
+                        <td>High</td>
+                        <td>High</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="highlight-box">
+                <h3>Python's Sweet Spot</h3>
+                <p>Python strikes the perfect balance between ease of use and powerful capabilities, making it ideal for rapid prototyping and production systems alike.</p>
+            </div>
+        </div>
+
+        <!-- Slide 9: Language Compatibility -->
+        <div class="slide">
+            <h2>Language Compatibility & Integration 🔗</h2>
+            <h3>Python Plays Well with Others:</h3>
+            <ul>
+                <li><strong>C/C++:</strong> Cython, ctypes for performance-critical code</li>
+                <li><strong>Java:</strong> Jython runs Python on JVM</li>
+                <li><strong>JavaScript:</strong> PyScript runs Python in browsers</li>
+                <li><strong>R:</strong> rpy2 package for R integration</li>
+                <li><strong>SQL:</strong> SQLAlchemy, pandas for database operations</li>
+                <li><strong>.NET:</strong> IronPython for .NET framework</li>
+            </ul>
+            <div class="applications-grid">
+                <div class="app-card">
+                    <h4>APIs & Web Services</h4>
+                    <p>REST APIs, GraphQL, microservices architecture</p>
+                </div>
+                <div class="app-card">
+                    <h4>Database Integration</h4>
+                    <p>MySQL, PostgreSQL, MongoDB, Redis support</p>
+                </div>
+                <div class="app-card">
+                    <h4>Cloud Platforms</h4>
+                    <p>AWS, Google Cloud, Azure native support</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: Python Ecosystem -->
+        <div class="slide">
+            <h2>Python Ecosystem 🌍</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>PyPI</h3>
+                    <p>Python Package Index - 400,000+ packages</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Conda</h3>
+                    <p>Package & environment management</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Jupyter</h3>
+                    <p>Interactive computing environment</p>
+                </div>
+                <div class="stat-card">
+                    <h3>PyCharm</h3>
+                    <p>Professional IDE for Python</p>
+                </div>
+            </div>
+            <h3>Development Tools:</h3>
+            <ul>
+                <li><strong>IDEs:</strong> PyCharm, VS Code, Spyder, IDLE</li>
+                <li><strong>Package Managers:</strong> pip, conda, poetry</li>
+                <li><strong>Virtual Environments:</strong> venv, virtualenv, pipenv</li>
+                <li><strong>Testing:</strong> pytest, unittest, nose</li>
+                <li><strong>Documentation:</strong> Sphinx, mkdocs</li>
+                <li><strong>Deployment:</strong> Docker, Kubernetes, Heroku</li>
+            </ul>
+        </div>
+
+        <!-- Slide 11: Python Career Scope -->
+        <div class="slide">
+            <h2>Career Scope & Opportunities 💼</h2>
+            <div class="applications-grid">
+                <div class="app-card">
+                    <h4>Data Scientist</h4>
+                    <p>$95K - $165K<br>High demand across industries</p>
+                </div>
+                <div class="app-card">
+                    <h4>ML Engineer</h4>
+                    <p>$110K - $180K<br>AI/ML model deployment</p>
+                </div>
+                <div class="app-card">
+                    <h4>Backend Developer</h4>
+                    <p>$75K - $140K<br>Web applications & APIs</p>
+                </div>
+                <div class="app-card">
+                    <h4>DevOps Engineer</h4>
+                    <p>$85K - $150K<br>Automation & infrastructure</p>
+                </div>
+                <div class="app-card">
+                    <h4>Research Scientist</h4>
+                    <p>$100K - $200K<br>Academic & industry research</p>
+                </div>
+                <div class="app-card">
+                    <h4>Quantitative Analyst</h4>
+                    <p>$120K - $250K<br>Finance & trading algorithms</p>
+                </div>
+            </div>
+            <div class="highlight-box">
+                <h3>Industry Demand</h3>
+                <p><strong>Growing Fields:</strong> AI/ML, Data Science, Cloud Computing, Fintech, Healthcare Tech, Cybersecurity</p>
+            </div>
+        </div>
+
+        <!-- Slide 12: Python Syntax Advantages -->
+        <div class="slide">
+            <h2>Python Syntax Advantages ✨</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <div>
+                    <h3>Python Code:</h3>
+                    <div class="code-block">
+# Python - Clean & Readable
+def fibonacci(n):
+    if n <= 1:
+        return n
+    return fibonacci(n-1) + fibonacci(n-2)
+
+# List comprehension
+squares = [x**2 for x in range(10)]
+
+# Dictionary comprehension
+word_lengths = {word: len(word) 
+                for word in ['hello', 'world']}
+                    </div>
+                </div>
+                <div>
+                    <h3>Java Code:</h3>
+                    <div class="code-block">
+// Java - More Verbose
+public class Fibonacci {
+    public static int fibonacci(int n) {
+        if (n <= 1) {
+            return n;
+        }
+        return fibonacci(n-1) + fibonacci(n-2);
+    }
+    
+    public static void main(String[] args) {
+        System.out.println(fibonacci(10));
+    }
+}
+                    </div>
+                </div>
+            </div>
+            <h3>Python Philosophy (PEP 20 - Zen of Python):</h3>
+            <ul>
+                <li>Beautiful is better than ugly</li>
+                <li>Simple is better than complex</li>
+                <li>Readability counts</li>
+                <li>There should be one obvious way to do it</li>
+            </ul>
+        </div>
+
+        <!-- Slide 13: Performance & Optimization -->
+        <div class="slide">
+            <h2>Performance & Optimization 🚀</h2>
+            <h3>Python Performance Characteristics:</h3>
+            <ul>
+                <li><strong>Interpreted Language:</strong> Slower than compiled languages</li>
+                <li><strong>GIL (Global Interpreter Lock):</strong> Limits multi-threading</li>
+                <li><strong>Memory Management:</strong> Automatic garbage collection</li>
+            </ul>
+            <div class="highlight-box">
+                <h3>Performance Optimization Techniques</h3>
+                <ul>
+                    <li><strong>NumPy:</strong> C-optimized numerical operations</li>
+                    <li><strong>Cython:</strong> Compile Python to C for speed</li>
+                    <li><strong>Multiprocessing:</strong> Bypass GIL limitations</li>
+                    <li><strong>JIT Compilation:</strong> PyPy, Numba for runtime optimization</li>
+                    <li><strong>Vectorization:</strong> Pandas operations on entire datasets</li>
+                </ul>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>100x</h3>
+                    <p>Faster with NumPy vs pure Python</p>
+                </div>
+                <div class="stat-card">
+                    <h3>10x</h3>
+                    <p>Faster development time vs other languages</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 14: Learning Path & Resources -->
+        <div class="slide">
+            <h2>Learning Path & Resources 📚</h2>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <h4>Week 1-2</h4>
+                    <p>Python Basics</p>
+                </div>
+                <div class="timeline-item">
+                    <h4>Week 3-4</h4>
+                    <p>Data Structures</p>
+                </div>
+                <div class="timeline-item">
+                    <h4>Week 5-6</h4>
+                    <p>NumPy & Pandas</p>
+                </div>
+                <div class="timeline-item">
+                    <h4>Week 7-8</h4>
+                    <p>Visualization</p>
+                </div>
+                <div class="timeline-item">
+                    <h4>Week 9+</h4>
+                    <p>Machine Learning</p>
+                </div>
+            </div>
+            <div class="applications-grid">
+                <div class="app-card">
+                    <h4>Official Resources</h4>
+                    <p>python.org, Python documentation, PEPs</p>
+                </div>
+                <div class="app-card">
+                    <h4>Interactive Learning</h4>
+                    <p>Jupyter Notebooks, Google Colab, Kaggle Learn</p>
+                </div>
+                <div class="app-card">
+                    <h4>Practice Platforms</h4>
+                    <p>HackerRank, LeetCode, Codewars</p>
+                </div>
+                <div class="app-card">
+                    <h4>Community</h4>
+                    <p>Stack Overflow, Reddit r/Python, Python Discord</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 15: Summary & Next Steps -->
+        <div class="slide">
+            <h2>Summary & Next Steps 🎯</h2>
+            <div class="highlight-box">
+                <h3>Why Python is Perfect for Data Science</h3>
+                <p>Python combines simplicity, powerful libraries, strong community support, and industry adoption making it the ideal choice for your data science journey.</p>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Easy</h3>
+                    <p>Simple syntax, readable code</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Powerful</h3>
+                    <p>Rich ecosystem of libraries</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Versatile</h3>
+                    <p>Multiple applications beyond DS</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Future-Ready</h3>
+                    <p>Growing demand in AI/ML</p>
+                </div>
+            </div>
+            <h3>Your Journey Starts Now:</h3>
+            <ul>
+                <li>Master Python fundamentals</li>
+                <li>Learn data manipulation with Pandas</li>
+                <li>Explore data visualization</li>
+                <li>Build machine learning models</li>
+                <li>Work on real-world projects</li>
+                <li>Join the Python community</li>
+            </ul>
+            <div style="text-align: center; margin-top: 40px;">
+                <h3 style="color: #3498db; font-size: 2.5em;">Welcome to the Python Data Science Journey! 🚀</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn" id="prevBtn" onclick="changeSlide(-1)">← Previous</button>
+        <button class="btn" id="nextBtn" onclick="changeSlide(1)">Next →</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        
+        document.getElementById('total-slides').textContent = totalSlides;
+
+        function showSlide(n) {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (n + totalSlides) % totalSlides;
+            slides[currentSlide].classList.add('active');
+            
+            document.getElementById('current-slide').textContent = currentSlide + 1;
+            
+            // Update button states
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+        }
+
+        function changeSlide(direction) {
+            if (direction === 1 && currentSlide < totalSlides - 1) {
+                showSlide(currentSlide + 1);
+            } else if (direction === -1 && currentSlide > 0) {
+                showSlide(currentSlide - 1);
+            }
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'ArrowRight' || event.key === ' ') {
+                changeSlide(1);
+            } else if (event.key === 'ArrowLeft') {
+                changeSlide(-1);
+            }
+        });
+
+        // Initialize
+        showSlide(0);
+
+        // Auto-advance slides (optional - comment out for manual control)
+        // setInterval(() => {
+        //     if (currentSlide < totalSlides - 1) {
+        //         changeSlide(1);
+        //     }
+        // }, 10000); // Auto-advance every 10 seconds
+    </script>
+</body>
+</html>
